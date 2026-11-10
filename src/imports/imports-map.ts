@@ -129,9 +129,7 @@ export const loadImportsMap = (filename: string): ImportsMap | undefined => {
   return map
 }
 
-const toPosix = (value: string): string => (path.sep === "/" ? value : value.split(path.sep).join("/"))
-
-const fromPosix = (value: string): string => (path.sep === "/" ? value : value.split("/").join(path.sep))
+const toPosix = (value: string): string => value.split(path.sep).join("/")
 
 /** Map an absolute file path to its `#` subpath specifier, picking the most specific entry. */
 export const absToSubpath = (absPath: string, map: ImportsMap): string | undefined => {
@@ -172,7 +170,7 @@ export const subpathToAbs = (specifier: string, map: ImportsMap): string | undef
         && specifier.endsWith(entry.keySuffix)
       ) {
         const mid = specifier.slice(entry.keyPrefix.length, specifier.length - entry.keySuffix.length)
-        abs = entry.targetPrefix + fromPosix(mid) + entry.targetSuffix
+        abs = path.normalize(entry.targetPrefix + mid + entry.targetSuffix)
       }
     } else if (specifier === entry.keyPrefix) abs = entry.targetPrefix
 

@@ -1,20 +1,17 @@
 {
-  "name": "@adamhl8/eslint-plugin-clean-modules",
+  "name": "@adamhl8/oxlint-plugin-clean-modules",
   "version": "0.1.6",
-  "description": "oxlint/ESLint plugin: require subpath imports, direct exports, and explicit import extensions",
+  "description": "oxlint plugin: require subpath imports, direct exports, and explicit import extensions",
   "keywords": [
-    "eslint",
-    "eslint-plugin",
-    "eslintplugin",
     "esm",
     "lint",
     "oxlint",
     "oxlint-plugin",
     "subpath-imports"
   ],
-  "homepage": "https://github.com/adamhl8/eslint-plugin-clean-modules",
+  "homepage": "https://github.com/adamhl8/oxlint-plugin-clean-modules",
   "bugs": {
-    "url": "https://github.com/adamhl8/eslint-plugin-clean-modules/issues"
+    "url": "https://github.com/adamhl8/oxlint-plugin-clean-modules/issues"
   },
   "license": "MIT",
   "author": {
@@ -24,7 +21,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/adamhl8/eslint-plugin-clean-modules.git"
+    "url": "git+https://github.com/adamhl8/oxlint-plugin-clean-modules.git"
   },
   "files": [
     "dist/"
@@ -46,29 +43,29 @@
     "prepare": "bask prepare"
   },
   "dependencies": {
-    "@typescript-eslint/types": "^8.72.1",
-    "@typescript-eslint/utils": "^8.72.1"
+    "@oxlint/plugins": "^1.93.0"
   },
   "devDependencies": {
-    "@adamhl8/bask": "^0.6.0",
-    "@adamhl8/configs": "^3.4.1",
+    "@adamhl8/bask": "^0.6.1",
+    "@adamhl8/configs": "^4.0.0",
     "@arethetypeswrong/core": "^0.18.5",
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
     "@types/bun": "^1.4.4",
-    "@typescript-eslint/rule-tester": "^8.72.1",
-    "eslint": "^10.13.0",
-    "knip": "^6.43.0",
+    "knip": "^6.44.2",
     "markdown-toc": "^1.2.0",
-    "oxfmt": "^0.74.0",
-    "oxlint": "^1.89.0",
-    "oxlint-tsgolint": "^7.0.2005",
+    "oxc-parser": "^0.158.0",
+    "oxfmt": "^0.78.0",
+    "oxlint": "^1.93.0",
+    "oxlint-tsgolint": "^7.0.2006",
     "publint": "^0.3.25",
-    "release-it": "^21.1.1",
-    "release-it-git-cliff": "^0.2.0",
-    "tsdown": "^0.23.2",
-    "typescript": "^6.0.3",
-    "typescript-next": "npm:typescript@^7.1.0-beta"
+    "release-it": "^21.1.2",
+    "release-it-git-cliff": "^0.2.1",
+    "tsdown": "^0.23.7",
+    "typescript": "^7.1.0-beta"
+  },
+  "peerDependencies": {
+    "oxlint": ">=1.91.0"
   },
   "engines": {
     "node": ">=24"

@@ -1,6 +1,6 @@
-# @adamhl8/eslint-plugin-clean-modules
+# @adamhl8/oxlint-plugin-clean-modules
 
-An [oxlint](https://oxc.rs/docs/guide/usage/linter) (ESLint-compatible) plugin with three rules for keeping module imports and exports clean in TypeScript projects:
+An [oxlint](https://oxc.rs/docs/guide/usage/linter) plugin with three rules for keeping module imports and exports clean in TypeScript projects:
 
 - [`require-subpath-imports`](#require-subpath-imports) -> ban relative imports in favor of native [Node.js subpath imports](https://nodejs.org/api/packages.html#subpath-imports)
 - [`require-direct-exports`](#require-direct-exports) -> require `export` on the declaration instead of a separate `export { ... }`
@@ -24,10 +24,10 @@ All three rules are auto-fixable.
 ## Installation
 
 ```bash
-bun add -D @adamhl8/eslint-plugin-clean-modules
+bun add -D @adamhl8/oxlint-plugin-clean-modules
 ```
 
-This plugin targets [oxlint's JavaScript plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins) (currently in alpha). It's authored against the ESLint v9 plugin API, so it also works as a regular ESLint plugin.
+This plugin targets [oxlint's JavaScript plugins](https://oxc.rs/docs/guide/usage/linter/js-plugins), which are in alpha, and needs oxlint 1.91 or later.
 
 ## Usage
 
@@ -35,7 +35,7 @@ Add the plugin to `jsPlugins` and enable the rules in your `.oxlintrc.json`. The
 
 ```json
 {
-  "jsPlugins": ["@adamhl8/eslint-plugin-clean-modules"],
+  "jsPlugins": ["@adamhl8/oxlint-plugin-clean-modules"],
   "rules": {
     "clean-modules/require-subpath-imports": "error",
     "clean-modules/require-direct-exports": "error",
@@ -82,7 +82,7 @@ Applies to `import`, dynamic `import()`, `export ... from`, and `export *`.
 
 Exports should be declared directly on the declaration. Indirect exports (`export { foo }`, `export { foo as bar }`) and re-exports (`export { x } from "..."`, `export * from "..."`) are banned. This is the inverse of [`import/no-named-export`](https://github.com/oxc-project/oxc/blob/main/crates/oxc_linter/src/rules/import/no_named_export.rs).
 
-`index.*` files are exempt, since barrel re-exports legitimately live there.
+The rule checks a module's own top-level exports, so it leaves the exports inside a `declare module` block alone. Barrel files are exempt, since re-exports legitimately live there. By default that's both an `index.*` file and a package's main module (a module named after its folder, like `foo/foo.ts`).
 
 The fix only handles the safe case: a local, non-renamed `export { foo }` where `foo` is a top-level declaration in the same file. It prepends `export` to the declaration and removes the statement. Renamed exports, re-exports, and multi-declarator cases are reported without a fix.
 
@@ -96,6 +96,7 @@ export const foo = 1 // autofixed
 #### Options
 
 - `allowEmpty: boolean` (default `false`) - allow the empty `export {}` module marker.
+- `barrels: ("index" | "main-module")[]` (default `["index", "main-module"]`) - which files count as barrels, where re-exports are allowed.
 
 ### `require-import-extensions`
 

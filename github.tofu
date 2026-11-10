@@ -2,14 +2,14 @@ terraform {
   backend "s3" {
     profile = "adamhl8"
     bucket  = "tofu-state-269329412317-us-east-1-an"
-    key     = "adamhl8/eslint-plugin-clean-modules.tfstate"
+    key     = "adamhl8/oxlint-plugin-clean-modules.tfstate"
     region  = "us-east-1"
   }
 }
 
 module "github" {
   source    = "./node_modules/@adamhl8/configs/dist/tofu/github"
-  repo_name = "eslint-plugin-clean-modules"
+  repo_name = "oxlint-plugin-clean-modules"
   actions_secrets = {
     NPM_CI_TOKEN = true
   }

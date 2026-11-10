@@ -1,6 +1,0 @@
-# typescript-eslint (a runtime dep of this plugin, plus its rule-tester) reads `ts.Extension.Cjs`, which TS 7
-# removed, so `typescript` must stay on 6 until typescript-eslint ships TS 7 support.
-# Without this reject the weekly update-deps PR would move it to 7 and break the test suite.
-# tsdown's dts build gets TS 7 separately, via the `typescript-next` alias.
-reject:
-  - typescript

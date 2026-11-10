@@ -5,7 +5,6 @@ coverageSkipTestFiles = true
 coveragePathIgnorePatterns = ["**/__tests__/**"]
 concurrentTestGlob = "**/*.test.ts"
 onlyFailures = true
-preload = ["./src/__tests__/test-setup.ts"]
 
 [install]
 linker = "isolated"

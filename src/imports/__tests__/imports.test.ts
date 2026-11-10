@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test"
 import path from "node:path"
 
-import { isExistingDirectory } from "#shared/resolve.ts"
+import { isExistingDirectory } from "#imports/imports.ts"
 
 const FIXTURES = path.join(import.meta.dir, "fixtures")
 

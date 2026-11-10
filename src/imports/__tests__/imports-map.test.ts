@@ -2,8 +2,8 @@ import { describe, expect, it } from "bun:test"
 import os from "node:os"
 import path from "node:path"
 
-import type { ImportsMap } from "#shared/imports-map.ts"
-import { absToSubpath, loadImportsMap, subpathToAbs } from "#shared/imports-map.ts"
+import type { ImportsMap } from "#imports/imports-map.ts"
+import { absToSubpath, loadImportsMap, subpathToAbs } from "#imports/imports-map.ts"
 
 const FIXTURES = path.join(import.meta.dir, "fixtures")
 const richDir = path.join(FIXTURES, "rich")
