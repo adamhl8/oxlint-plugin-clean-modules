@@ -1,3 +1,9 @@
+## [0.2.0](https://github.com/adamhl8/oxlint-plugin-clean-modules/compare/v0.1.6..v0.2.0) - 2026-11-10
+
+### 🚀 Features
+
+- migrate plugin to oxlint plugin api ([ee9371d](https://github.com/adamhl8/oxlint-plugin-clean-modules/commit/ee9371dc243b54bbbe0a866da9105fc10b8d3b2e) by @adamhl8)
+
 ## [0.1.6](https://github.com/adamhl8/oxlint-plugin-clean-modules/compare/v0.1.5..v0.1.6) - 2026-10-26
 
 ### ⚙️ Miscellaneous Tasks
