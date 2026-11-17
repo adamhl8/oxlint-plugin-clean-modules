@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 
-import { absToSubpath, loadImportsMap, subpathToAbs } from "#imports/imports-map.ts"
+import { absToSubpath, loadImportsMap, subpathToAbs } from "#imports/map.ts"
 
 // Match the extensions an import can name and still resolve to a TypeScript file, an empty one included.
 // https://www.typescriptlang.org/docs/handbook/modules/reference.html#file-extension-substitution

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "bun:test"
 import path from "node:path"
 
-import { isExistingDirectory } from "#imports/imports.ts"
+import { isExistingDirectory } from "#imports.ts"
 
 const FIXTURES = path.join(import.meta.dir, "fixtures")
 
 describe("isExistingDirectory", () => {
   it("returns true for a directory", () => {
-    expect(isExistingDirectory(path.join(FIXTURES, "rich"))).toBe(true)
+    expect(isExistingDirectory(path.join(FIXTURES, "project"))).toBe(true)
   })
 
   it("returns false for a missing path", () => {
@@ -15,6 +15,6 @@ describe("isExistingDirectory", () => {
   })
 
   it("returns false for a path that runs through a file", () => {
-    expect(isExistingDirectory(path.join(FIXTURES, "rich/package.json/child"))).toBe(false)
+    expect(isExistingDirectory(path.join(FIXTURES, "project/package.json/child"))).toBe(false)
   })
 })

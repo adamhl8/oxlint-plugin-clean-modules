@@ -10,7 +10,7 @@ import {
   isExistingDirectory,
   resolveSpecifier,
   TS_EXTENSION_SLOTS,
-} from "#imports/imports.ts"
+} from "#imports.ts"
 
 /**
  * Returns the problem with a local specifier whose extension doesn't match the TypeScript module on disk, and the

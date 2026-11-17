@@ -5,7 +5,7 @@ import { defineRule } from "@oxlint/plugins"
 
 import type { SpecifierProblem } from "#import-sources.ts"
 import { checkImportSources } from "#import-sources.ts"
-import { findDirectoryIndex, isRelativeSpecifier, toSubpathSpecifier } from "#imports/imports.ts"
+import { findDirectoryIndex, isRelativeSpecifier, toSubpathSpecifier } from "#imports.ts"
 import { getOptionsObject } from "#rule-options.ts"
 
 /** Returns the `ignore` option: the substrings that exempt a specifier that contains one. */
