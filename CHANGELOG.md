@@ -1,3 +1,9 @@
+## [0.3.1](https://github.com/adamhl8/oxlint-plugin-clean-modules/compare/v0.3.0..v0.3.1) - 2026-11-17
+
+### 🚜 Refactor
+
+- project layout ([1367075](https://github.com/adamhl8/oxlint-plugin-clean-modules/commit/136707563826b9c330fe2f7af3cfdf8503d991cd) by @adamhl8)
+
 ## [0.3.0](https://github.com/adamhl8/oxlint-plugin-clean-modules/compare/v0.2.0..v0.3.0) - 2026-11-17
 
 ### 🚀 Features
