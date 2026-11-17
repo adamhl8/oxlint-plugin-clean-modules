@@ -4,11 +4,9 @@ import path from "node:path"
 import { copyFixture } from "@adamhl8/configs/test"
 import bun, { $ } from "bun"
 
-const REPO_DIRECTORY = path.resolve(import.meta.dir, "../..")
+import { buildPlugin, OXLINT_BIN, PLUGIN_PATH } from "#__tests__/oxlint.ts"
+
 const FIXTURE_DIRECTORY = path.join(import.meta.dir, "fixtures", "oxlint-project")
-const PLUGIN_PATH = path.join(REPO_DIRECTORY, "dist/index.js")
-const OXLINT_BIN = path.join(REPO_DIRECTORY, "node_modules/.bin/oxlint")
-const TSDOWN_BIN = path.join(REPO_DIRECTORY, "node_modules/.bin/tsdown")
 
 const RULE_PREFIX = "clean-modules("
 
@@ -39,17 +37,17 @@ const lintProject = async (directory: string): Promise<string[]> => {
     .toSorted()
 }
 
-beforeAll(async () => {
-  // Build first, because oxlint loads the plugin from `dist/`.
-  await $`${TSDOWN_BIN}`.cwd(REPO_DIRECTORY).quiet()
-})
+beforeAll(buildPlugin)
 
 describe("the plugin in oxlint", () => {
-  it("should report each rule's problems, and nothing in a barrel file", async () => {
+  it("should report each rule's problems, and allow re-exports only in an index file", async () => {
     const directory = await copyFixtureProject()
 
     expect(await lintProject(directory)).toStrictEqual([
+      "src/feature/feature.ts:1:1: Re-exports are not allowed here; export directly on the declaration in the defining module. [Error/clean-modules(require-direct-exports)]",
       "src/helper.ts:2:1: Add `export` directly to the declaration instead of a separate `export { ... }` statement. [Error/clean-modules(require-direct-exports)]",
+      "src/index.ts:6:1: Add `export` directly to the declaration instead of a separate `export { ... }` statement. [Error/clean-modules(require-direct-exports)]",
+      "src/index.ts:7:1: Re-export imported names with `export { ... } from` instead of importing them and exporting them separately. [Error/clean-modules(require-direct-exports)]",
       "src/main.ts:1:23: Import './helper' should use the file extension '.ts'. [Error/clean-modules(require-import-extensions)]",
       "src/main.ts:1:23: Relative import './helper' is not allowed; use the subpath import '#helper'. [Error/clean-modules(require-subpath-imports)]",
       "src/main.ts:3:27: Import './helper' should use the file extension '.ts'. [Error/clean-modules(require-import-extensions)]",
@@ -75,9 +73,13 @@ describe("the plugin in oxlint", () => {
     expect(await readSource("main.ts")).toBe(
       "import { value } from '#helper.ts'\n\nconst lazyHelper = import(\"#helper.ts\")\n\nconsole.log(value, lazyHelper)\n",
     )
-    expect(await readSource("helper.ts")).toBe("export const value = 1\n\n")
+    expect(await readSource("helper.ts")).toBe("export const value = 1\n")
+    expect(await readSource("index.ts")).toBe(
+      "\nexport { value } from \"#helper.ts\"\n\nexport const local = 1\nexport { value as renamed } from '#helper.ts'\n",
+    )
     expect(await readSource("reexports.ts")).toBe('export { value } from "#helper.ts"\nexport * from "#helper.ts"\n')
     expect(await lintProject(directory)).toStrictEqual([
+      "src/feature/feature.ts:1:1: Re-exports are not allowed here; export directly on the declaration in the defining module. [Error/clean-modules(require-direct-exports)]",
       "src/reexports.ts:1:1: Re-exports are not allowed here; export directly on the declaration in the defining module. [Error/clean-modules(require-direct-exports)]",
       "src/reexports.ts:2:1: Re-exports are not allowed here; export directly on the declaration in the defining module. [Error/clean-modules(require-direct-exports)]",
     ])

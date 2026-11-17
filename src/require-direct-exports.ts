@@ -3,19 +3,36 @@ import path from "node:path"
 import type { Context, ESTree } from "@oxlint/plugins"
 import { defineRule } from "@oxlint/plugins"
 
+import type { FindReferences } from "#imported-exports.ts"
+import { buildReexportEdits, findImportedExports, mapImportBindings } from "#imported-exports.ts"
 import { getOptionsObject } from "#rule-options.ts"
+import type { TextEdit } from "#text-edits.ts"
+import { removeStatement } from "#text-edits.ts"
 
 /** The options of `require-direct-exports`. */
 interface DirectExportsOptions {
   allowEmpty: boolean
-  barrels: readonly Barrel[]
 }
 
-/** An export statement the rule reports, and the declarations to export instead when the rule can fix it. */
-export interface ExportProblem {
-  messageId: "reexport" | "emptyExport" | "indirectExport"
+/** What `findExportProblems` checks a module with, besides its program. */
+interface ExportCheckOptions extends DirectExportsOptions {
+  sourceText: string
+  isIndexFile: boolean
+  findReferences: FindReferences
+}
+
+/** An export statement the rule reports, and the edits that fix it when the rule can. */
+interface ExportProblem {
+  messageId: "reexport" | "emptyExport" | "indirectExport" | "importedExport"
   statement: ESTree.Node
-  declarations?: ESTree.Node[]
+  edits?: TextEdit[]
+}
+
+/** What `checkExportStatement` knows about the module a statement is in. */
+interface ModuleFacts extends ExportCheckOptions {
+  program: ESTree.Program
+  declarations: Map<string, Declaration>
+  importBindings: ReturnType<typeof mapImportBindings>
 }
 
 /** The top-level names a statement declares, and whether putting `export` in front of it exports exactly those. */
@@ -32,25 +49,14 @@ interface Declaration {
 
 type TopLevelStatement = ESTree.Program["body"][number]
 
-// Name the files where re-exports belong: an `index` file, and a main module, which is named after its folder.
-const BARRELS = ["index", "main-module"] as const
-type Barrel = (typeof BARRELS)[number]
-
-const isBarrel = (value: unknown): value is Barrel => BARRELS.some((barrel) => barrel === value)
-
 /** Returns the rule's options, with the defaults for the ones it wasn't given. */
 export const readDirectExportsOptions = (options: Context["options"]): DirectExportsOptions => {
-  const { allowEmpty, barrels } = getOptionsObject(options)
-  return { allowEmpty: allowEmpty === true, barrels: Array.isArray(barrels) ? barrels.filter(isBarrel) : BARRELS }
+  const { allowEmpty } = getOptionsObject(options)
+  return { allowEmpty: allowEmpty === true }
 }
 
-/** Reports whether a file is one of the `barrels` kinds of file, where re-exports belong. */
-export const isBarrelFile = (filePath: string, barrels: readonly Barrel[]): boolean => {
-  const { name, dir } = path.parse(filePath)
-  const isIndex = barrels.includes("index") && name === "index"
-  const isMainModule = barrels.includes("main-module") && name === path.basename(dir)
-  return isIndex || isMainModule
-}
+/** Reports whether a file is an `index` file, an entry point where re-exports belong. */
+export const isIndexFile = (filePath: string): boolean => path.parse(filePath).name === "index"
 
 /** Returns the names a top-level statement declares, or `undefined` for a statement that declares none. */
 const toDeclaredNames = (statement: TopLevelStatement): DeclaredNames | undefined => {
@@ -112,31 +118,71 @@ const findExportableDeclaration = (
   return declaration?.canExport ? declaration.statement : undefined
 }
 
-/** Returns the problem with a top-level statement, or `undefined` when it's not an export, or a direct one. */
-const checkExportStatement = (
-  statement: TopLevelStatement,
-  declarations: Map<string, Declaration>,
-  allowEmpty: boolean,
-): ExportProblem | undefined => {
-  if (statement.type === "ExportAllDeclaration") return { messageId: "reexport", statement }
-  if (statement.type !== "ExportNamedDeclaration" || statement.declaration !== null) return undefined
-  if (statement.source !== null) return { messageId: "reexport", statement }
-  if (statement.specifiers.length === 0) return allowEmpty ? undefined : { messageId: "emptyExport", statement }
+/** Reports whether a module has an import or export besides `statement`, so it stays a module without it. */
+const hasOtherModuleSyntax = (program: ESTree.Program, statement: ESTree.Node): boolean =>
+  program.body.some(
+    (other) =>
+      other !== statement
+      && (other.type === "ImportDeclaration"
+        || other.type === "ExportNamedDeclaration"
+        || other.type === "ExportDefaultDeclaration"
+        || other.type === "ExportAllDeclaration"
+        || other.type === "TSExportAssignment"),
+  )
+
+/** Returns the problem with an `export { ... }` statement that lists local names. */
+const checkLocalExport = (statement: ESTree.ExportNamedDeclaration, module: ModuleFacts): ExportProblem => {
+  if (module.isIndexFile) {
+    const importedExports = findImportedExports(statement, module.importBindings)
+    if (importedExports !== undefined) {
+      const context = { sourceText: module.sourceText, statement, findReferences: module.findReferences }
+      const edits = buildReexportEdits(context, importedExports)
+      return edits ? { messageId: "importedExport", statement, edits } : { messageId: "importedExport", statement }
+    }
+  }
 
   const exportableDeclarations = statement.specifiers.flatMap((specifier) => {
-    const declaration = findExportableDeclaration(specifier, declarations)
+    const declaration = findExportableDeclaration(specifier, module.declarations)
     return declaration ? [declaration] : []
   })
-  const canFix = exportableDeclarations.length === statement.specifiers.length
-  return canFix
-    ? { messageId: "indirectExport", statement, declarations: exportableDeclarations }
-    : { messageId: "indirectExport", statement }
+  if (exportableDeclarations.length !== statement.specifiers.length) return { messageId: "indirectExport", statement }
+
+  const edits = [
+    ...exportableDeclarations.map((declaration): TextEdit => ({
+      range: [declaration.start, declaration.start],
+      text: "export ",
+    })),
+    removeStatement(module.sourceText, statement),
+  ]
+  return { messageId: "indirectExport", statement, edits }
+}
+
+/** Returns the problem with a top-level statement, or `undefined` when it's not an export, or a direct one. */
+const checkExportStatement = (statement: TopLevelStatement, module: ModuleFacts): ExportProblem | undefined => {
+  // Allow a re-export in an index file, because it's an entry point, where re-exports belong.
+  if (statement.type === "ExportAllDeclaration")
+    return module.isIndexFile ? undefined : { messageId: "reexport", statement }
+  if (statement.type !== "ExportNamedDeclaration" || statement.declaration !== null) return undefined
+  if (statement.source !== null) return module.isIndexFile ? undefined : { messageId: "reexport", statement }
+  if (statement.specifiers.length > 0) return checkLocalExport(statement, module)
+  if (module.allowEmpty) return undefined
+
+  // Report an `export {}` that's the module's only import or export without a fix.
+  // Removing it would turn the module into a script.
+  return hasOtherModuleSyntax(module.program, statement)
+    ? { messageId: "emptyExport", statement, edits: [removeStatement(module.sourceText, statement)] }
+    : { messageId: "emptyExport", statement }
 }
 
 /** Returns every export statement in a module that doesn't export a declaration directly. */
-export const findExportProblems = (program: ESTree.Program, allowEmpty: boolean): ExportProblem[] => {
-  const declarations = mapDeclarations(program)
-  return program.body.flatMap((statement) => checkExportStatement(statement, declarations, allowEmpty) ?? [])
+const findExportProblems = (program: ESTree.Program, options: ExportCheckOptions): ExportProblem[] => {
+  const module: ModuleFacts = {
+    ...options,
+    program,
+    declarations: mapDeclarations(program),
+    importBindings: mapImportBindings(program),
+  }
+  return program.body.flatMap((statement) => checkExportStatement(statement, module) ?? [])
 }
 
 export const requireDirectExports = defineRule({
@@ -147,10 +193,7 @@ export const requireDirectExports = defineRule({
     schema: [
       {
         type: "object",
-        properties: {
-          allowEmpty: { type: "boolean" },
-          barrels: { type: "array", items: { type: "string", enum: [...BARRELS] }, uniqueItems: true },
-        },
+        properties: { allowEmpty: { type: "boolean" } },
         additionalProperties: false,
       },
     ],
@@ -158,23 +201,29 @@ export const requireDirectExports = defineRule({
       indirectExport: "Add `export` directly to the declaration instead of a separate `export { ... }` statement.",
       reexport: "Re-exports are not allowed here; export directly on the declaration in the defining module.",
       emptyExport: "Remove the empty `export {}` statement.",
+      importedExport:
+        "Re-export imported names with `export { ... } from` instead of importing them and exporting them separately.",
     },
   },
   create: (context) => {
-    const { allowEmpty, barrels } = readDirectExportsOptions(context.options)
-    if (isBarrelFile(context.filename, barrels)) return {}
+    const { allowEmpty } = readDirectExportsOptions(context.options)
+    const options: ExportCheckOptions = {
+      allowEmpty,
+      sourceText: context.sourceCode.text,
+      isIndexFile: isIndexFile(context.filename),
+      findReferences: (specifier) =>
+        context.sourceCode
+          .getDeclaredVariables(specifier)
+          .flatMap(({ references }) => references.map(({ identifier }) => identifier)),
+    }
 
     return {
       Program: (program) => {
-        for (const { messageId, statement, declarations } of findExportProblems(program, allowEmpty)) {
+        for (const { messageId, statement, edits } of findExportProblems(program, options)) {
           context.report({
             node: statement,
             messageId,
-            fix: (fixer) =>
-              declarations && [
-                ...declarations.map((declaration) => fixer.insertTextBefore(declaration, "export ")),
-                fixer.remove(statement),
-              ],
+            fix: (fixer) => edits?.map(({ range, text }) => fixer.replaceTextRange(range, text)),
           })
         }
       },

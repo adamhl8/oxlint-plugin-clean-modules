@@ -82,9 +82,14 @@ Applies to `import`, dynamic `import()`, `export ... from`, and `export *`.
 
 Exports should be declared directly on the declaration. Indirect exports (`export { foo }`, `export { foo as bar }`) and re-exports (`export { x } from "..."`, `export * from "..."`) are banned. This is the inverse of [`import/no-named-export`](https://github.com/oxc-project/oxc/blob/main/crates/oxc_linter/src/rules/import/no_named_export.rs).
 
-The rule checks a module's own top-level exports, so it leaves the exports inside a `declare module` block alone. Barrel files are exempt, since re-exports legitimately live there. By default that's both an `index.*` file and a package's main module (a module named after its folder, like `foo/foo.ts`).
+The rule checks a module's own top-level exports, so it leaves the exports inside a `declare module` block alone.
 
-The fix only handles the safe case: a local, non-renamed `export { foo }` where `foo` is a top-level declaration in the same file. It prepends `export` to the declaration and removes the statement. Renamed exports, re-exports, and multi-declarator cases are reported without a fix.
+The fix only handles the safe cases:
+
+- A local, non-renamed `export { foo }` where `foo` is a top-level declaration in the same file. It prepends `export` to the declaration and removes the statement.
+- An empty `export {}` in a module that has another import or export. It removes the statement. When `export {}` is the only one, removing it would make the file a script, so it's reported without a fix.
+
+Renamed exports, re-exports, and multi-declarator cases are reported without a fix.
 
 ```ts
 const foo = 1
@@ -93,10 +98,22 @@ export { foo } // error
 export const foo = 1 // autofixed
 ```
 
+#### Index files
+
+An `index.*` file is an entry point, where re-exports belong, so the rule allows `export { x } from "..."` and `export * from "..."` there. Everything else is checked as in any other file.
+
+An `export { ... }` of names the index file imports is a re-export split in two, so it's reported, and fixed into one `export ... from` per import. The fix keeps renames, `default`, namespace, and type imports, and removes each import the file doesn't use otherwise. It finds other uses with oxlint's scope analysis, so a use as a type counts, and a comment, a string, or a property with the same name doesn't. An import with attributes, like `with { type: "json" }`, is reported without a fix.
+
+```ts
+import { foo } from "./foo"
+export { foo } // error
+
+export { foo } from "./foo" // autofixed
+```
+
 #### Options
 
 - `allowEmpty: boolean` (default `false`) - allow the empty `export {}` module marker.
-- `barrels: ("index" | "main-module")[]` (default `["index", "main-module"]`) - which files count as barrels, where re-exports are allowed.
 
 ### `require-import-extensions`
 
