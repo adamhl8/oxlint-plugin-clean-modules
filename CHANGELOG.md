@@ -1,3 +1,9 @@
+## [0.3.0](https://github.com/adamhl8/oxlint-plugin-clean-modules/compare/v0.2.0..v0.3.0) - 2026-11-17
+
+### 🚀 Features
+
+- drop main-module barrels from require-direct-exports ([199f573](https://github.com/adamhl8/oxlint-plugin-clean-modules/commit/199f573d582c53299921c902ce9d3bcf42d13746) by @adamhl8)
+
 ## [0.2.0](https://github.com/adamhl8/oxlint-plugin-clean-modules/compare/v0.1.6..v0.2.0) - 2026-11-10
 
 ### 🚀 Features
